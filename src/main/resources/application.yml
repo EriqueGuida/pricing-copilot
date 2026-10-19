@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: copiloto
+  profiles:
+    default: dev
+  jpa:
+    open-in-view: false        # Transação isolada na camada de serviço (evita LazyInitializationException fora do serviço)
+    hibernate:
+      ddl-auto: validate       # O schema é controlado exclusivamente pelo Flyway
+    properties:
+      hibernate.jdbc.time_zone: UTC   # Datas e horas sempre tratadas em UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

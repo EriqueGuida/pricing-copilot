@@ -1,0 +1,27 @@
+services:  
+  mysql:    
+    image: mysql:8.0    
+    container_name: copiloto-mysql    
+    restart: unless-stopped    
+    environment:      
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}      
+      MYSQL_DATABASE: pricing_copilot
+      MYSQL_USER: ${DB_USER:-copiloto}      
+      MYSQL_PASSWORD: ${DB_PASSWORD:-copiloto}      
+      TZ: UTC    
+    command:      
+      - --character-set-server=utf8mb4      
+      - --collation-server=utf8mb4_0900_ai_ci      
+      - --log-bin-trust-function-creators=1    
+    ports:      
+      - "3307:3306"    
+    volumes:      
+      - mysql_data:/var/lib/mysql    
+    healthcheck:      
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]      
+      interval: 5s      
+      timeout: 3s      
+      retries: 20
+
+volumes:  
+  mysql_data:
