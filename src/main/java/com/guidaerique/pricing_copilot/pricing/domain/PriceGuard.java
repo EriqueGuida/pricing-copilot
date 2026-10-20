@@ -5,6 +5,8 @@ import java.util.Objects;
 
 public final class PriceGuard {
 
+    private static final int MONEY_SCALE = 2;
+
     public void validate(
             BigDecimal suggestedPrice,
             PriceBounds bounds
@@ -17,6 +19,17 @@ public final class PriceGuard {
         if (suggestedPrice.signum() <= 0) {
             throw new InvalidPriceSuggestionException(
                     "O preço sugerido deve ser positivo."
+            );
+        }
+
+        // O banco grava DECIMAL(12,2): um preço com mais de 2 casas
+        // significativas seria arredondado na persistência, e o valor
+        // gravado divergiria do validado e auditado. stripTrailingZeros
+        // aceita 110.0 / 110.00 / 110.000, mas rejeita 110.005.
+        if (suggestedPrice.stripTrailingZeros().scale() > MONEY_SCALE) {
+            throw new InvalidPriceSuggestionException(
+                    "O preço sugerido deve ter no máximo "
+                            + MONEY_SCALE + " casas decimais."
             );
         }
 

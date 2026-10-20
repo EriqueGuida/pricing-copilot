@@ -53,11 +53,39 @@ public final class PriceBoundsCalculator {
         }
 
         // Interseção vazia: a margem prevalece sobre a variação.
-        BigDecimal alvo = currentPrice.compareTo(pisoMargem) < 0
+        BigDecimal alvo = escolherAlvoDeMargem(
+                currentPrice, pisoMargem, tetoMargem
+        );
+
+        // Só sinaliza variação quando ela é a causa: o alvo de margem está
+        // fora do alcance do preço atual. Na janela subcentavo o alvo pode
+        // estar ao alcance, e a causa é o arredondamento (ver ADR-001).
+        boolean variacaoImpedeOAlvo = alvo.compareTo(pisoVariacao) < 0
+                || alvo.compareTo(tetoVariacao) > 0;
+
+        return new PriceBounds(alvo, alvo, variacaoImpedeOAlvo);
+    }
+
+    /**
+     * Escolhe o preço-alvo quando a interseção margem x variação é vazia.
+     *
+     * Janela subcentavo: após arredondar (piso para cima, teto para baixo),
+     * pode não existir preço em centavos que respeite as duas margens
+     * (piso > teto). Nesse caso a margem MÍNIMA prevalece (ADR-001).
+     * Nos demais casos, o limite de margem mais próximo do preço atual.
+     */
+    private BigDecimal escolherAlvoDeMargem(
+            BigDecimal currentPrice,
+            BigDecimal pisoMargem,
+            BigDecimal tetoMargem
+    ) {
+        if (pisoMargem.compareTo(tetoMargem) > 0) {
+            return pisoMargem;
+        }
+
+        return currentPrice.compareTo(pisoMargem) < 0
                 ? pisoMargem
                 : tetoMargem;
-
-        return new PriceBounds(alvo, alvo, true);
     }
 
     private void validateInputs(

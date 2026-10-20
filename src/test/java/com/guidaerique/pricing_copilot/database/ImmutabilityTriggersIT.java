@@ -1,20 +1,18 @@
-
 package com.guidaerique.pricing_copilot.database;
 
-import com.guidaerique.pricing_copilot.TestcontainersConfiguration;
+import com.guidaerique.pricing_copilot.IntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.math.BigDecimal;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static com.guidaerique.pricing_copilot.database.SqlAssertions.assertViolacao;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
+@IntegrationTest
 class ImmutabilityTriggersIT {
 
     @Autowired
@@ -25,6 +23,7 @@ class ImmutabilityTriggersIT {
     private Long priceHistoryId;
     private Long competitorPriceId;
     private Long categoryId;
+    private String motivoOriginal;
 
     @BeforeEach
     void prepararDados() {
@@ -35,7 +34,7 @@ class ImmutabilityTriggersIT {
         String nomeCategoria = "Categoria-" + sufixo;
         String sku = "SKU-" + sufixo;
         String nomeConcorrente = "Concorrente-" + sufixo;
-        String motivo = "Teste-" + sufixo;
+        motivoOriginal = "Teste-" + sufixo;
 
         jdbcTemplate.update("""
             INSERT INTO category
@@ -76,7 +75,7 @@ class ImmutabilityTriggersIT {
             INSERT INTO price_history
                 (product_id, old_price, new_price, origin, reason)
             VALUES (?, 100.00, 110.00, 'AI', ?)
-            """, productId, motivo);
+            """, productId, motivoOriginal);
 
         priceHistoryId = jdbcTemplate.queryForObject(
                 """
@@ -86,7 +85,7 @@ class ImmutabilityTriggersIT {
                 """,
                 Long.class,
                 productId,
-                motivo
+                motivoOriginal
         );
 
         jdbcTemplate.update("""
@@ -107,38 +106,103 @@ class ImmutabilityTriggersIT {
         );
     }
 
-
     @Test
-    void deveImpedirUpdateEDeleteDoHistoricoDePrecos() {
-        assertThrows(DataAccessException.class, () ->
+    void deveImpedirUpdateDoHistoricoDePrecosEPreservarORegistro() {
+        assertViolacao(() ->
                 jdbcTemplate.update("""
                     UPDATE price_history
                     SET reason = 'Alteração indevida'
                     WHERE id = ?
-                    """, priceHistoryId)
+                    """, priceHistoryId),
+                "price_history e imutavel: UPDATE proibido"
         );
 
-        assertThrows(DataAccessException.class, () ->
-                jdbcTemplate.update("""
-                    DELETE FROM price_history WHERE id = ?
-                    """, priceHistoryId)
-        );
+        assertHistoricoIntegro();
     }
 
     @Test
-    void deveImpedirUpdateEDeleteDosPrecosDosConcorrentes() {
-        assertThrows(DataAccessException.class, () ->
+    void deveImpedirDeleteDoHistoricoDePrecosEPreservarORegistro() {
+        assertViolacao(() ->
+                jdbcTemplate.update("""
+                    DELETE FROM price_history WHERE id = ?
+                    """, priceHistoryId),
+                "price_history e imutavel: DELETE proibido"
+        );
+
+        assertHistoricoIntegro();
+    }
+
+    @Test
+    void deveImpedirUpdateDosPrecosDosConcorrentesEPreservarORegistro() {
+        assertViolacao(() ->
                 jdbcTemplate.update("""
                     UPDATE competitor_price
                     SET price = 130.00
                     WHERE id = ?
-                    """, competitorPriceId)
+                    """, competitorPriceId),
+                "competitor_price e imutavel: UPDATE proibido"
         );
 
-        assertThrows(DataAccessException.class, () ->
+        assertPrecoDeConcorrenteIntegro();
+    }
+
+    @Test
+    void deveImpedirDeleteDosPrecosDosConcorrentesEPreservarORegistro() {
+        assertViolacao(() ->
                 jdbcTemplate.update("""
                     DELETE FROM competitor_price WHERE id = ?
-                    """, competitorPriceId)
+                    """, competitorPriceId),
+                "competitor_price e imutavel: DELETE proibido"
+        );
+
+        assertPrecoDeConcorrenteIntegro();
+    }
+
+    /** O registro rejeitado continua existindo e com os valores originais. */
+    private void assertHistoricoIntegro() {
+        Integer linhas = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM price_history WHERE id = ?",
+                Integer.class,
+                priceHistoryId
+        );
+        assertEquals(1, linhas, "O registro do histórico deveria existir.");
+
+        String motivo = jdbcTemplate.queryForObject(
+                "SELECT reason FROM price_history WHERE id = ?",
+                String.class,
+                priceHistoryId
+        );
+        assertEquals(motivoOriginal, motivo, "O motivo foi alterado.");
+
+        BigDecimal novoPreco = jdbcTemplate.queryForObject(
+                "SELECT new_price FROM price_history WHERE id = ?",
+                BigDecimal.class,
+                priceHistoryId
+        );
+        assertEquals(
+                0,
+                new BigDecimal("110.00").compareTo(novoPreco),
+                "O preço do histórico foi alterado."
+        );
+    }
+
+    private void assertPrecoDeConcorrenteIntegro() {
+        Integer linhas = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM competitor_price WHERE id = ?",
+                Integer.class,
+                competitorPriceId
+        );
+        assertEquals(1, linhas, "O preço do concorrente deveria existir.");
+
+        BigDecimal preco = jdbcTemplate.queryForObject(
+                "SELECT price FROM competitor_price WHERE id = ?",
+                BigDecimal.class,
+                competitorPriceId
+        );
+        assertEquals(
+                0,
+                new BigDecimal("120.00").compareTo(preco),
+                "O preço do concorrente foi alterado."
         );
     }
 }

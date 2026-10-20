@@ -1,6 +1,5 @@
 spring:
   datasource:
-    datasource:
     url: jdbc:mysql://localhost:3307/pricing_copilot?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: ${DB_USER:copiloto}
     password: ${DB_PASSWORD:copiloto}
