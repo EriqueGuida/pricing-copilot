@@ -497,7 +497,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
   ┌───────────────────────────────────────────────────────────────────────────────┘
   ▼
 [M5: Override & Auditoria] ──▶ [M6: Ingestão de Concorrentes] ──▶ [M7: Dados & Modelo IA]
-        (CONCLUÍDA)                      (A INICIAR)
+        (CONCLUÍDA)                      (CONCLUÍDA)                    (A INICIAR)
                                                                           │
   ┌───────────────────────────────────────────────────────────────────────┘
   ▼

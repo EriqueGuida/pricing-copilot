@@ -29,7 +29,7 @@ O desenvolvimento é orientado a 11 marcos executáveis. As camadas fundamentais
   *Mapeamento JPA com `@Version`, CRUD de produtos/categorias, Spring Security 6 com JWT stateless, papéis `ADMIN`, `OPERATOR` e `EXECUTIVE`, e documentação OpenAPI/Swagger.*
 - [x] **Milestone 5: Sobrescrita Manual, Auditoria & Alertas por Eventos**  
   *Endpoints de override, trava temporária contra a IA (`manual_lock_until`), eventos desacoplados (`PriceChangedEvent`) e alertas de quebra de margem ou colapso de variação.*
-- [ ] **Milestone 6: Ingestão de Preços de Concorrentes**  
+- [x] **Milestone 6: Ingestão de Preços de Concorrentes**  
   *Arquitetura baseada em Strategy Pattern para ingestão de preços de mercado via CSV multipart e endpoint REST JSON.*
 - [ ] **Milestone 7: Módulo de IA: Dados Sintéticos & Modelo Econométrico**  
   *Gerador de dados reproduzível com seed fixa, regressão múltipla log-log de elasticidade da demanda e notebook de avaliação simulada contra baseline.*
