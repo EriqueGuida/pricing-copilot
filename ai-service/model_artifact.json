@@ -1,0 +1,45 @@
+{
+  "model_version": "v1.0.0",
+  "calibrated_at": "2026-10-21T17:51:39.720572+00:00",
+  "categories": {
+    "CONSUMER_ELECTRONICS": {
+      "eta": -1.9066,
+      "beta": 0.5231,
+      "alpha": 12.4087,
+      "r2": 0.8302,
+      "p_value_eta": 3.7037584936806105e-266,
+      "conf_int_eta_95": [
+        -2.013794341704979,
+        -1.799366748346601
+      ],
+      "observations": 1460,
+      "status": "CALIBRATED"
+    },
+    "COMPUTER_GAMING": {
+      "eta": -2.2984,
+      "beta": 0.5905,
+      "alpha": 13.0402,
+      "r2": 0.7993,
+      "p_value_eta": 0.0,
+      "conf_int_eta_95": [
+        -2.4080113272392527,
+        -2.1887085248368354
+      ],
+      "observations": 1460,
+      "status": "CALIBRATED"
+    },
+    "SMART_HOME": {
+      "eta": -1.5643,
+      "beta": 0.426,
+      "alpha": 9.4451,
+      "r2": 0.7997,
+      "p_value_eta": 1.6090380866134612e-165,
+      "conf_int_eta_95": [
+        -1.6760793704546957,
+        -1.4524494787525086
+      ],
+      "observations": 1460,
+      "status": "CALIBRATED"
+    }
+  }
+}

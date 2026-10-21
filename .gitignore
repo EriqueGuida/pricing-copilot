@@ -45,3 +45,15 @@ build/
 # Windows
 Thumbs.db
 ehthumbs.db
+
+# Python & Ambientes
+.venv/
+__pycache__/
+*.pyc
+
+# Pytest
+.pytest_cache/
+
+# Dados gerados localmente (recriados via script)
+data/*.csv
+data/*.parquet

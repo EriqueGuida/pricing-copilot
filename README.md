@@ -1,7 +1,7 @@
 # 🏷️ Copiloto de Precificação Inteligente
 
 ![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow?style=for-the-badge)
-![Milestone](https://img.shields.io/badge/Milestone-4%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
+![Milestone](https://img.shields.io/badge/Milestone-7%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
 
 ---
 
@@ -31,7 +31,7 @@ O desenvolvimento é orientado a 11 marcos executáveis. As camadas fundamentais
   *Endpoints de override, trava temporária contra a IA (`manual_lock_until`), eventos desacoplados (`PriceChangedEvent`) e alertas de quebra de margem ou colapso de variação.*
 - [x] **Milestone 6: Ingestão de Preços de Concorrentes**  
   *Arquitetura baseada em Strategy Pattern para ingestão de preços de mercado via CSV multipart e endpoint REST JSON.*
-- [ ] **Milestone 7: Módulo de IA: Dados Sintéticos & Modelo Econométrico**  
+- [x] **Milestone 7: Módulo de IA: Dados Sintéticos & Modelo Econométrico**  
   *Gerador de dados reproduzível com seed fixa, regressão múltipla log-log de elasticidade da demanda e notebook de avaliação simulada contra baseline.*
 - [ ] **Milestone 8: Serviço FastAPI de Inferência**  
   *Microsserviço Python stateless, contratos Pydantic v2 com `Decimal` em string, estratégia de baseline fallback e medição de latência p95 < 500 ms.*
