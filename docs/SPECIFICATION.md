@@ -502,7 +502,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
   ┌───────────────────────────────────────────────────────────────────────┘
   ▼
 [M8: Serviço FastAPI] ──▶ [M9: Integração Java ↔ IA] ──▶ [M10: Relatórios/KPIs] ──▶ [M11: DoD Final]
-    (A INICIAR)
+    (CONCLUÍDA)                  (A INICIAR)
 ```
 
 ---
