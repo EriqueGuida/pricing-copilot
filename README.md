@@ -27,7 +27,7 @@ O desenvolvimento é orientado a 11 marcos executáveis. As camadas fundamentais
   *Implementação de `PriceBoundsCalculator` e `PriceGuard` com aritmética estrita em `BigDecimal`, arredondamento financeiro (`CEILING`/`FLOOR`), prevalência de margem sobre variação, tratamento da janela subcentavo (ADR-001) e suíte de testes de propriedade com 300.000 iterações.*
 - [x] **Milestone 4: Catálogo de Produtos & Autenticação RBAC**  
   *Mapeamento JPA com `@Version`, CRUD de produtos/categorias, Spring Security 6 com JWT stateless, papéis `ADMIN`, `OPERATOR` e `EXECUTIVE`, e documentação OpenAPI/Swagger.*
-- [ ] **Milestone 5: Sobrescrita Manual, Auditoria & Alertas por Eventos**  
+- [x] **Milestone 5: Sobrescrita Manual, Auditoria & Alertas por Eventos**  
   *Endpoints de override, trava temporária contra a IA (`manual_lock_until`), eventos desacoplados (`PriceChangedEvent`) e alertas de quebra de margem ou colapso de variação.*
 - [ ] **Milestone 6: Ingestão de Preços de Concorrentes**  
   *Arquitetura baseada em Strategy Pattern para ingestão de preços de mercado via CSV multipart e endpoint REST JSON.*
