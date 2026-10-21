@@ -1,7 +1,7 @@
 # 🏷️ Copiloto de Precificação Inteligente
 
 ![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow?style=for-the-badge)
-![Milestone](https://img.shields.io/badge/Milestone-3%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
+![Milestone](https://img.shields.io/badge/Milestone-4%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
 
 ---
 
@@ -25,7 +25,7 @@ O desenvolvimento é orientado a 11 marcos executáveis. As camadas fundamentais
   *DDL completo das tabelas core, constraints de domínio (`CHECK`, `UNIQUE`, `FKs`), triggers de imutabilidade relacional (bloqueio de `UPDATE`/`DELETE` em auditoria) e testes com Testcontainers.*
 - [x] **Milestone 3: Domínio Puro de Precificação**  
   *Implementação de `PriceBoundsCalculator` e `PriceGuard` com aritmética estrita em `BigDecimal`, arredondamento financeiro (`CEILING`/`FLOOR`), prevalência de margem sobre variação, tratamento da janela subcentavo (ADR-001) e suíte de testes de propriedade com 300.000 iterações.*
-- [ ] **Milestone 4: Catálogo de Produtos & Autenticação RBAC**  
+- [x] **Milestone 4: Catálogo de Produtos & Autenticação RBAC**  
   *Mapeamento JPA com `@Version`, CRUD de produtos/categorias, Spring Security 6 com JWT stateless, papéis `ADMIN`, `OPERATOR` e `EXECUTIVE`, e documentação OpenAPI/Swagger.*
 - [ ] **Milestone 5: Sobrescrita Manual, Auditoria & Alertas por Eventos**  
   *Endpoints de override, trava temporária contra a IA (`manual_lock_until`), eventos desacoplados (`PriceChangedEvent`) e alertas de quebra de margem ou colapso de variação.*

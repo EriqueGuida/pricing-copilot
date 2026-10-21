@@ -492,11 +492,12 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 
 ```
 [M1: Fundação] ──▶ [M2: Banco de Dados] ──▶ [M3: Domínio de Preço] ──▶ [M4: Catálogo & RBAC]
-  (CONCLUÍDA)         (CONCLUÍDA)              (CONCLUÍDA)                   (A INICIAR)
+  (CONCLUÍDA)         (CONCLUÍDA)              (CONCLUÍDA)                   (CONCLUÍDA)
                                                                                   │
   ┌───────────────────────────────────────────────────────────────────────────────┘
   ▼
 [M5: Override & Auditoria] ──▶ [M6: Ingestão de Concorrentes] ──▶ [M7: Dados & Modelo IA]
+       (A INICIAR)
                                                                           │
   ┌───────────────────────────────────────────────────────────────────────┘
   ▼
