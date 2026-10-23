@@ -502,7 +502,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
   ┌───────────────────────────────────────────────────────────────────────┘
   ▼
 [M8: Serviço FastAPI] ──▶ [M9: Integração Java ↔ IA] ──▶ [M10: Relatórios/KPIs] ──▶ [M11: DoD Final]
-    (CONCLUÍDA)                  (CONCLUÍDA)                   (A INICIAR)
+    (CONCLUÍDA)                  (CONCLUÍDA)                   (CONCLUÍDA)              (A INICIAR)
 ```
 
 ---
@@ -672,7 +672,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 10 — Relatórios e Requisitos Complementares (Should)
-*Status:* **Pendente (Depende de M5 e M9).**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Entregar exportação de histórico para fechamentos financeiros em formato de streaming de alto volume e endpoints analíticos de KPIs.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Implementar `GET /api/reports/price-history.csv`:

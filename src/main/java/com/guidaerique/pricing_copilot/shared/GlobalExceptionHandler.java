@@ -2,13 +2,13 @@ package com.guidaerique.pricing_copilot.shared.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,6 +23,10 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    // =========================================================================
+    // EXCEÇÕES DAS MILESTONES ANTERIORES (MANTIDAS INTACTAS)
+    // =========================================================================
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
@@ -44,7 +48,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Violação de integridade relacional ou unicidade de dados.");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                "Violação de integridade relacional ou unicidade de dados."
+        );
         problem.setTitle("Conflito de Dados");
         problem.setType(URI.create("https://api.copiloto.com/errors/data-conflict"));
         problem.setProperty("timestamp", Instant.now());
@@ -53,7 +60,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ProblemDetail handleOptimisticLock(OptimisticLockingFailureException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "O recurso foi modificado concorrentemente por outra transação. Tente novamente.");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                "O recurso foi modificado concorrentemente por outra transação. Tente novamente."
+        );
         problem.setTitle("Conflito de Concorrência Otimista");
         problem.setType(URI.create("https://api.copiloto.com/errors/concurrency-conflict"));
         problem.setProperty("timestamp", Instant.now());
@@ -81,7 +91,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,
-            org.springframework.http.HttpHeaders headers,
+            HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
 
@@ -98,6 +108,33 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         return ResponseEntity.status(status).body(problem);
     }
+
+    // =========================================================================
+    // EXCEÇÕES ADICIONADAS PARA A MILESTONE 10
+    // =========================================================================
+
+    @ExceptionHandler(DuplicateInvoiceException.class)
+    public ProblemDetail handleDuplicateInvoice(DuplicateInvoiceException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Nota Fiscal Já Processada");
+        problem.setType(URI.create("https://api.copiloto.com/errors/duplicate-invoice"));
+        problem.setProperty("accessKey", ex.getAccessKey());
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidInvoiceXmlException.class)
+    public ProblemDetail handleInvalidInvoiceXml(InvalidInvoiceXmlException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        problem.setTitle("XML de NF-e Inválido ou Inconsistente");
+        problem.setType(URI.create("https://api.copiloto.com/errors/invalid-invoice-xml"));
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    // =========================================================================
+    // FALLBACK GENÉRICO
+    // =========================================================================
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGenericException(Exception ex) {
