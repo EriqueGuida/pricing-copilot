@@ -1,3 +1,14 @@
+testcontainers:
+  enabled: false
+
 spring:
+  datasource:
+    url: jdbc:mysql://localhost:3307/pricing_copilot?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: copiloto
+    password: copiloto
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
-    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true

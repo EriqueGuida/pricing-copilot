@@ -1,7 +1,7 @@
 # 🏷️ Copiloto de Precificação Inteligente
 
 ![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow?style=for-the-badge)
-![Milestone](https://img.shields.io/badge/Milestone-8%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
+![Milestone](https://img.shields.io/badge/Milestone-9%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
 
 ---
 
@@ -35,7 +35,7 @@ O desenvolvimento é orientado a 11 marcos executáveis. As camadas fundamentais
   *Gerador de dados reproduzível com seed fixa, regressão múltipla log-log de elasticidade da demanda e notebook de avaliação simulada contra baseline.*
 - [x] **Milestone 8: Serviço FastAPI de Inferência**  
   *Microsserviço Python stateless, contratos Pydantic v2 com `Decimal` em string, estratégia de baseline fallback e medição de latência p95 < 500 ms.*
-- [ ] **Milestone 9: Integração Resiliente Java ↔ IA**  
+- [x] **Milestone 9: Integração Resiliente Java ↔ IA**  
   *Orquestrador de ciclos de precificação (`PricingRunService`), Resilience4j (timeout de 2s, retry e circuit breaker) e processamento transacional isolado por produto.*
 - [ ] **Milestone 10: Relatórios de Auditoria & Indicadores (KPIs)**  
   *Exportação de histórico em CSV via streaming de baixo consumo de memória, endpoints de métricas agregadas via SQL nativo e parser de NF-e.*

@@ -25,7 +25,7 @@ public class Product {
     @Column(nullable = false, unique = true, length = 40)
     private String sku;
 
-    @Column(unique = true, length = 13)
+    @Column(name = "ean", columnDefinition = "CHAR(13)", length = 13, unique = true)
     private String ean;
 
     @Column(nullable = false, length = 160)

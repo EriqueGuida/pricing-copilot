@@ -502,7 +502,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
   ┌───────────────────────────────────────────────────────────────────────┘
   ▼
 [M8: Serviço FastAPI] ──▶ [M9: Integração Java ↔ IA] ──▶ [M10: Relatórios/KPIs] ──▶ [M11: DoD Final]
-    (CONCLUÍDA)                  (A INICIAR)
+    (CONCLUÍDA)                  (CONCLUÍDA)                   (A INICIAR)
 ```
 
 ---
@@ -525,7 +525,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 4 — Catálogo de Produtos e Segurança RBAC
-*Status:* **A Iniciar.**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Disponibilizar os recursos transacionais de catálogo protegidos por autenticação stateless JWT e autorização por papéis de usuário.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Mapear entidades JPA com anotações de tabela e constraints: `Category`, `Product` (com anotação `@Version private Long version`), `AppUser`.
@@ -548,7 +548,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 5 — Sobrescrita Manual, Auditoria e Alertas por Eventos
-*Status:* **Pendente (Depende de M4).**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Implementar o fluxo transacional de override manual de preço, garantir a persistência atômica da auditoria e disparar alertas via eventos desacoplados.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Mapear entidades JPA: `PriceHistory` e `Alert`.
@@ -577,7 +577,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 6 — Ingestão de Preços de Concorrentes
-*Status:* **Pendente (Depende de M4).**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Implementar a ingestão de preços de mercado por upload de CSV multipart e payload JSON direto, sob uma arquitetura baseada no Strategy Pattern.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Mapear entidades JPA: `Competitor` e `CompetitorPrice`.
@@ -598,7 +598,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 7 — Módulo de IA: Dados Sintéticos, Modelagem e Avaliação
-*Status:* **Pendente (Pode ocorrer em paralelo a M4-M6).**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Gerar base sintética reproduzível de vendas, calibrar o modelo econométrico log-log de elasticidade e validar os ganhos simulados em notebook.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Estruturar diretório `ai-service/` com arquivos de configuração (`pyproject.toml` ou `requirements.txt`).
@@ -622,7 +622,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 8 — Microsserviço Python com FastAPI
-*Status:* **Pendente (Depende de M7).**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Expor o modelo estatístico por meio de uma API HTTP assíncrona, com inferência puramente stateless e contratos Pydantic v2.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Mapear schemas de entrada e saída Pydantic v2 com `Decimal` trafegado como string monetária.
@@ -644,7 +644,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 9 — Integração Resiliente Java ↔ Python
-*Status:* **Pendente (Depende de M5, M6 e M8).**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Orquestrar o ciclo completo de precificação autônoma no Java, integrando com o microsserviço Python de forma segura e tolerante a falhas.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Implementar a interface `PriceSuggestionClient` com duas implementações:
