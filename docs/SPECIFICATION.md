@@ -87,11 +87,10 @@ O sistema adota uma **arquitetura híbrida desacoplada**:
 │ ├── pricing_run, alert                │   │ ├── Pydantic v2 (Validation Engine)        │
 │ ├── price_history (Append-Only)       │   │ └── Engine Econométrica (Log-Log)          │
 │ │   └── Triggers: BLOQUEIA UPD/DEL    │   └────────────────────────────────────────────┘
-│ └── competitor_price (Append-Only)    │                          ▲
-│     └── Triggers: BLOQUEIA UPD/DEL    │                          │ Leitura Somente-Leitura
-│                                       │                          │ (sales_history)
-└───────────────────────────────────────┘                          │
-                    └──────────────────────────────────────────────┘
+│ └── competitor_price (Append-Only)    │                          
+│     └── Triggers: BLOQUEIA UPD/DEL    │                         
+│                                       │                          
+└───────────────────────────────────────┘                          
 ```
 
 #### 3.2 Estrutura de Pacotes por Feature (Backend Java)
@@ -502,7 +501,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
   ┌───────────────────────────────────────────────────────────────────────┘
   ▼
 [M8: Serviço FastAPI] ──▶ [M9: Integração Java ↔ IA] ──▶ [M10: Relatórios/KPIs] ──▶ [M11: DoD Final]
-    (CONCLUÍDA)                  (CONCLUÍDA)                   (CONCLUÍDA)              (A INICIAR)
+    (CONCLUÍDA)                  (CONCLUÍDA)                   (CONCLUÍDA)              (CONCLUÍDA)
 ```
 
 ---
@@ -693,7 +692,7 @@ O projeto é dividido em **11 milestones encadeadas**. Cada etapa possui depend�
 ---
 
 #### Milestone 11 — Polimento, CI/CD e Definition of Done (DoD)
-*Status:* **Pendente (Fase Final).**
+*Status:* **Concluída e Validada no Repositório.**
 *   **Objetivo:** Orquestrar o ambiente global por Docker Compose, fechar o pipeline de integração contínua e formalizar a documentação arquitetural de portfólio.
 *   **Tarefas Práticas e Acionáveis:**
     1.  Consolidar o arquivo `docker-compose.yml` unificado para subir simultaneamente:
