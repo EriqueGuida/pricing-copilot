@@ -6,8 +6,11 @@ import com.guidaerique.pricing_copilot.alert.repository.AlertRepository;
 import com.guidaerique.pricing_copilot.pricing.domain.event.PriceChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 public class AlertEventListener {
@@ -19,7 +22,8 @@ public class AlertEventListener {
         this.alertRepository = alertRepository;
     }
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handlePriceChanged(PriceChangedEvent event) {
         // Alerta 1: Quebra de margem mínima
         if (event.newPrice().compareTo(event.pisoMargem()) < 0) {

@@ -1,6 +1,9 @@
 package com.guidaerique.pricing_copilot.pricing.reporting.controller;
 
 import com.guidaerique.pricing_copilot.pricing.reporting.service.PriceHistoryReportService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,6 +19,8 @@ import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/reports")
+@Tag(name = "Relatórios e Auditoria", description = "Exportação de histórico de alterações de preços em CSV via streaming")
+@SecurityRequirement(name = "bearerAuth")
 public class ReportController {
 
     private final PriceHistoryReportService reportService;
@@ -26,6 +31,7 @@ public class ReportController {
 
     @GetMapping(value = "/price-history.csv", produces = "text/csv")
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'EXECUTIVE')")
+    @Operation(summary = "Exporta histórico auditado de preços em CSV via streaming de baixo consumo de memória")
     public ResponseEntity<StreamingResponseBody> exportPriceHistoryCsv(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {

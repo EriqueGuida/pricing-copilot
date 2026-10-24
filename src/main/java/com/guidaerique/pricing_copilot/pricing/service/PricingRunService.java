@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -63,101 +62,127 @@ public class PricingRunService {
     private PricingRun executePricingCycle() {
         PricingRun run = new PricingRun();
         run = pricingRunRepository.save(run);
-
-        LocalDateTime now = LocalDateTime.now();
-        List<Product> eligibleProducts = productRepository.findAllEligibleForPricing(now);
-
-        if (eligibleProducts.isEmpty()) {
-            log.info("Nenhum produto elegivel para precificacao.");
-            run.complete("NONE");
-            return pricingRunRepository.save(run);
-        }
-
-        List<List<Product>> partitions = partitionList(eligibleProducts, BATCH_SIZE);
         String lastModelVersion = "v1.0.0";
 
-        for (List<Product> batch : partitions) {
-            Map<String, Product> productBySku = batch.stream()
-                    .collect(Collectors.toMap(Product::getSku, Function.identity()));
-            Map<String, PriceBounds> boundsBySku = new HashMap<>();
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            List<Product> eligibleProducts = productRepository.findAllEligibleForPricing(now);
 
-            List<SuggestionItemRequest> requestItems = new ArrayList<>();
+            if (eligibleProducts.isEmpty()) {
+                log.info("Nenhum produto elegivel para precificacao.");
+                run.complete("NONE");
+                return pricingRunRepository.save(run);
+            }
 
-            for (Product p : batch) {
-                PriceBounds bounds = boundsCalculator.calculate(
-                        p.getCostPrice(),
-                        p.getCurrentPrice(),
-                        p.getCategory().getMinMargin(),
-                        p.getCategory().getMaxMargin(),
-                        p.getCategory().getMaxVariation()
-                );
-                boundsBySku.put(p.getSku(), bounds);
+            List<List<Product>> partitions = partitionList(eligibleProducts, BATCH_SIZE);
 
-                List<String> compPrices = competitorPriceRepository.findTop5LatestPrices(p.getId())
+            for (List<Product> batch : partitions) {
+                Map<String, PriceBounds> boundsBySku = new HashMap<>();
+                List<SuggestionItemRequest> requestItems = new ArrayList<>();
+
+                // Busca agregada de preços de concorrentes em uma única query por lote (Elimina N+1)
+                List<Long> batchProductIds = batch.stream().map(Product::getId).toList();
+                Map<Long, List<String>> compPricesByProductId = competitorPriceRepository
+                        .findTop5LatestPricesByProductIds(batchProductIds)
                         .stream()
-                        .map(cp -> cp.setScale(2, RoundingMode.HALF_UP).toPlainString())
-                        .toList();
+                        .collect(Collectors.groupingBy(
+                                CompetitorPriceRepository.ProductPriceProjection::getProductId,
+                                Collectors.mapping(
+                                        cp -> cp.getPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                                        Collectors.toList()
+                                )
+                        ));
 
-                requestItems.add(new SuggestionItemRequest(
-                        p.getSku(),
-                        p.getCategory().getId(),
-                        p.getCostPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                        p.getCurrentPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                        bounds.minPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                        bounds.maxPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                        compPrices
-                ));
-            }
-
-            SuggestionBatchRequest batchRequest = new SuggestionBatchRequest(run.getId(), requestItems);
-            SuggestionBatchResponse response = null;
-
-            try {
-                response = suggestionClient.requestSuggestions(batchRequest);
-                if (response != null && response.modelVersion() != null) {
-                    lastModelVersion = response.modelVersion();
-                }
-            } catch (Exception ex) {
-                log.error("Falha de comunicacao com microsservico de IA: {}", ex.getMessage());
                 for (Product p : batch) {
-                    run.incrementProcessed();
-                    run.incrementError();
-                    itemProcessor.recordAiUnavailable(p, "Falha na integracao com servico de IA: " + ex.getMessage());
+                    PriceBounds bounds = boundsCalculator.calculate(
+                            p.getCostPrice(),
+                            p.getCurrentPrice(),
+                            p.getCategory().getMinMargin(),
+                            p.getCategory().getMaxMargin(),
+                            p.getCategory().getMaxVariation()
+                    );
+                    boundsBySku.put(p.getSku(), bounds);
+
+                    List<String> compPrices = compPricesByProductId.getOrDefault(p.getId(), List.of());
+
+                    requestItems.add(new SuggestionItemRequest(
+                            p.getSku(),
+                            p.getCategory().getId(),
+                            p.getCostPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                            p.getCurrentPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                            bounds.minPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                            bounds.maxPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                            compPrices
+                    ));
                 }
-                continue;
-            }
 
-            Map<String, SuggestionResultResponse> suggestionsBySku = response.results().stream()
-                    .collect(Collectors.toMap(SuggestionResultResponse::sku, Function.identity()));
+                SuggestionBatchRequest batchRequest = new SuggestionBatchRequest(run.getId(), requestItems);
+                SuggestionBatchResponse response;
 
-            for (Product product : batch) {
-                run.incrementProcessed();
-                SuggestionResultResponse suggestion = suggestionsBySku.get(product.getSku());
-
-                if (suggestion == null) {
-                    run.incrementError();
+                try {
+                    response = suggestionClient.requestSuggestions(batchRequest);
+                    if (response != null && response.modelVersion() != null) {
+                        lastModelVersion = response.modelVersion();
+                    }
+                } catch (Exception ex) {
+                    log.error("Falha de comunicacao com microsservico de IA: {}", ex.getMessage());
+                    for (Product p : batch) {
+                        run.incrementProcessed();
+                        run.incrementError();
+                        itemProcessor.recordAiUnavailable(p, "Falha na integracao com servico de IA: " + ex.getMessage());
+                    }
                     continue;
                 }
 
-                PriceBounds bounds = boundsBySku.get(product.getSku());
-                PricingItemProcessor.ProcessOutcome outcome = itemProcessor.processItemSuccess(
-                        product,
-                        bounds,
-                        suggestion,
-                        run,
-                        lastModelVersion
-                );
+                List<SuggestionResultResponse> results = (response != null && response.results() != null)
+                        ? response.results()
+                        : List.of();
 
-                switch (outcome) {
-                    case UPDATED -> run.incrementUpdated();
-                    case SKIPPED -> run.incrementSkipped();
-                    case ERROR -> run.incrementError();
+                Map<String, SuggestionResultResponse> suggestionsBySku = results.stream()
+                        .collect(Collectors.toMap(
+                                SuggestionResultResponse::sku,
+                                Function.identity(),
+                                (existing, replacement) -> existing
+                        ));
+
+                for (Product product : batch) {
+                    run.incrementProcessed();
+                    SuggestionResultResponse suggestion = suggestionsBySku.get(product.getSku());
+
+                    if (suggestion == null) {
+                        run.incrementError();
+                        continue;
+                    }
+
+                    PriceBounds bounds = boundsBySku.get(product.getSku());
+                    try {
+                        PricingItemProcessor.ProcessOutcome outcome = itemProcessor.processItemSuccess(
+                                product,
+                                bounds,
+                                suggestion,
+                                run,
+                                lastModelVersion
+                        );
+
+                        switch (outcome) {
+                            case UPDATED -> run.incrementUpdated();
+                            case SKIPPED -> run.incrementSkipped();
+                            case ERROR -> run.incrementError();
+                        }
+                    } catch (Exception ex) {
+                        log.error("Falha transacional ou de concorrencia ao processar SKU {}: {}", product.getSku(), ex.getMessage());
+                        run.incrementError();
+                    }
                 }
             }
-        }
 
-        run.complete(lastModelVersion);
-        return pricingRunRepository.save(run);
+            run.complete(lastModelVersion);
+            return pricingRunRepository.save(run);
+        } catch (Exception fatalEx) {
+            log.error("Erro fatal inesperado durante execucao do ciclo de precificacao: {}", fatalEx.getMessage(), fatalEx);
+            run.fail(lastModelVersion);
+            return pricingRunRepository.save(run);
+        }
     }
 
     private <T> List<List<T>> partitionList(List<T> list, int size) {

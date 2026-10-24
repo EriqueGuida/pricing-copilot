@@ -11,7 +11,6 @@ import uuid
 from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
-from fastapi.responses import JSONResponse
 
 from config import settings
 from optimizer import evaluate_pricing_strategy
@@ -93,12 +92,12 @@ async def correlation_and_latency_middleware(request: Request, call_next):
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Observabilidade"])
-async def health_check():
+def health_check():
     return HealthResponse(status="UP")
 
 
 @app.get(f"{settings.api_prefix}/model/info", response_model=ModelInfoResponse, tags=["Modelo Econométrico"])
-async def get_model_info():
+def get_model_info():
     if not app_state["categories"]:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -112,16 +111,17 @@ async def get_model_info():
 
 
 @app.post(f"{settings.api_prefix}/suggestions", response_model=SuggestionResponse, tags=["Otimização de Preços"])
-async def calculate_suggestions(payload: SuggestionRequest):
+def calculate_suggestions(payload: SuggestionRequest):
     """
     Processa lote de itens e retorna sugestões ótimas com clipping seguro.
-    Não altera estado em memória nem acessa banco de dados.
+    Definido como 'def' síncrono para que o FastAPI execute o loop CPU-bound
+    em threadpool sem bloquear o event loop principal.
     """
     results = []
     categories_data = app_state.get("categories", {})
 
     for item in payload.items:
-        vertical_name = settings.category_vertical_map.get(item.category_id, "UNKNOWN")
+        vertical_name = item.vertical or settings.category_vertical_map.get(item.category_id, "UNKNOWN")
         decision = evaluate_pricing_strategy(
             item=item,
             model_params=categories_data,

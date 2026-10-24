@@ -3,8 +3,8 @@ Contratos e schemas de validação Pydantic v2 com aritmética decimal estrita.
 """
 
 from decimal import Decimal
-from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, field_serializer, field_validator
+from typing import Dict, List, Literal, Optional
+from pydantic import BaseModel, Field, field_serializer, model_validator
 
 
 def _format_decimal_two_places(value: Optional[Decimal]) -> Optional[str]:
@@ -16,19 +16,18 @@ def _format_decimal_two_places(value: Optional[Decimal]) -> Optional[str]:
 class SuggestionItem(BaseModel):
     sku: str = Field(..., min_length=1, max_length=60, description="SKU do produto")
     category_id: int = Field(..., gt=0, description="ID da categoria no catálogo")
+    vertical: Optional[str] = Field(None, description="Vertical de negócio enviada pelo Java (desacoplado de ID)")
     cost_price: Decimal = Field(..., gt=0, description="Preço de custo de aquisição")
     current_price: Decimal = Field(..., gt=0, description="Preço atual de catálogo")
     min_price: Decimal = Field(..., gt=0, description="Piso operacional seguro (calculado pelo Java)")
     max_price: Decimal = Field(..., gt=0, description="Teto operacional seguro (calculado pelo Java)")
     competitor_prices: List[Decimal] = Field(default_factory=list, description="Coletas recentes de concorrentes")
 
-    @field_validator("min_price")
-    @classmethod
-    def validate_min_less_than_max(cls, v: Decimal, info) -> Decimal:
-        max_p = info.data.get("max_price")
-        if max_p is not None and v > max_p:
-            raise ValueError(f"min_price ({v}) não pode ser maior que max_price ({max_p})")
-        return v
+    @model_validator(mode="after")
+    def validate_min_less_than_max(self) -> "SuggestionItem":
+        if self.min_price > self.max_price:
+            raise ValueError(f"min_price ({self.min_price}) não pode ser maior que max_price ({self.max_price})")
+        return self
 
     @field_serializer("cost_price", "current_price", "min_price", "max_price", when_used="json")
     def serialize_prices(self, v: Decimal) -> str:

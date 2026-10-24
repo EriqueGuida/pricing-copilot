@@ -55,5 +55,5 @@ jobs:
       - name: Grant Execute Permission to Maven Wrapper
         run: chmod +x ./mvnw
 
-      - name: Run Maven Test Suite (with Testcontainers MySQL 8.0)
-        run: ./mvnw clean test -B
+      - name: Run Maven Verify Suite (Unit + Integration Tests with Testcontainers)
+        run: ./mvnw clean verify -B

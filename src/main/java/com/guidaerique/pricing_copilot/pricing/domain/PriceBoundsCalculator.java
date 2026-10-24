@@ -12,6 +12,26 @@ public final class PriceBoundsCalculator {
     private static final BigDecimal ONE = BigDecimal.ONE;
     private static final BigDecimal ZERO = BigDecimal.ZERO;
 
+    public BigDecimal calculateMarginFloor(BigDecimal cost, BigDecimal minMargin) {
+        Objects.requireNonNull(cost, "Custo é obrigatório.");
+        Objects.requireNonNull(minMargin, "Margem mínima é obrigatória.");
+        return cost.divide(
+                ONE.subtract(minMargin),
+                DIVISION_SCALE,
+                RoundingMode.CEILING
+        ).setScale(MONEY_SCALE, RoundingMode.CEILING);
+    }
+
+    public BigDecimal calculateMarginCeiling(BigDecimal cost, BigDecimal maxMargin) {
+        Objects.requireNonNull(cost, "Custo é obrigatório.");
+        Objects.requireNonNull(maxMargin, "Margem máxima é obrigatória.");
+        return cost.divide(
+                ONE.subtract(maxMargin),
+                DIVISION_SCALE,
+                RoundingMode.FLOOR
+        ).setScale(MONEY_SCALE, RoundingMode.FLOOR);
+    }
+
     public PriceBounds calculate(
             BigDecimal cost,
             BigDecimal currentPrice,
@@ -23,17 +43,8 @@ public final class PriceBoundsCalculator {
                 cost, currentPrice, minMargin, maxMargin, maxVariation
         );
 
-        BigDecimal pisoMargem = cost.divide(
-                ONE.subtract(minMargin),
-                DIVISION_SCALE,
-                RoundingMode.CEILING
-        ).setScale(MONEY_SCALE, RoundingMode.CEILING);
-
-        BigDecimal tetoMargem = cost.divide(
-                ONE.subtract(maxMargin),
-                DIVISION_SCALE,
-                RoundingMode.FLOOR
-        ).setScale(MONEY_SCALE, RoundingMode.FLOOR);
+        BigDecimal pisoMargem = calculateMarginFloor(cost, minMargin);
+        BigDecimal tetoMargem = calculateMarginCeiling(cost, maxMargin);
 
         BigDecimal pisoVariacao = currentPrice
                 .multiply(ONE.subtract(maxVariation))
@@ -66,14 +77,6 @@ public final class PriceBoundsCalculator {
         return new PriceBounds(alvo, alvo, variacaoImpedeOAlvo);
     }
 
-    /**
-     * Escolhe o preço-alvo quando a interseção margem x variação é vazia.
-     *
-     * Janela subcentavo: após arredondar (piso para cima, teto para baixo),
-     * pode não existir preço em centavos que respeite as duas margens
-     * (piso > teto). Nesse caso a margem MÍNIMA prevalece (ADR-001).
-     * Nos demais casos, o limite de margem mais próximo do preço atual.
-     */
     private BigDecimal escolherAlvoDeMargem(
             BigDecimal currentPrice,
             BigDecimal pisoMargem,

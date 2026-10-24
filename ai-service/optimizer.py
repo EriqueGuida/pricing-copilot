@@ -3,7 +3,7 @@ Motor analítico de cálculo de preço ótimo por elasticidade e fallback baseli
 """
 
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Dict, Literal, Optional, Tuple
+from typing import Dict, Literal, Optional, Tuple, Union
 from schemas import (
     Explanation,
     SuggestionItem,
@@ -16,19 +16,34 @@ DecisionOutput = SuggestionResult
 DecisionExplanation = Explanation
 
 
-def calculate_optimal_price(cost_price: float, elasticity: float) -> float:
+def calculate_optimal_price(cost_price: Union[float, Decimal], elasticity: Union[float, Decimal]) -> float:
     """
     Calcula o preço ótimo maximizador de lucro:
     p* = cost * (eta / (1 + eta))
     Exige demanda elástica: eta < -1.
     """
-    if elasticity >= -1.0:
+    eta_val = float(elasticity)
+    if eta_val >= -1.0:
         raise ValueError(
-            f"Elasticidade inelástica ou não convergente (eta = {elasticity:.4f} >= -1). "
+            f"Elasticidade inelástica ou não convergente (eta = {eta_val:.4f} >= -1). "
             "Impossível calcular preço ótimo sem limites de saturação."
         )
-    markup_factor = elasticity / (1.0 + elasticity)
-    return cost_price * markup_factor
+    markup_factor = eta_val / (1.0 + eta_val)
+    return float(cost_price) * markup_factor
+
+
+def calculate_optimal_price_decimal(cost_price: Decimal, elasticity: Union[float, Decimal]) -> Decimal:
+    """
+    Versão em aritmética Decimal estrita para evitar perda de precisão IEEE 754.
+    """
+    eta_dec = Decimal(str(elasticity))
+    if eta_dec >= Decimal("-1.0"):
+        raise ValueError(
+            f"Elasticidade inelástica ou não convergente (eta = {eta_dec} >= -1). "
+            "Impossível calcular preço ótimo sem limites de saturação."
+        )
+    markup_factor = eta_dec / (Decimal("1") + eta_dec)
+    return (cost_price * markup_factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def _clip_price(
@@ -101,11 +116,8 @@ def evaluate_pricing_strategy(
             ),
         )
 
-    # 3. Otimização Irrestrita (Elasticidade de Alta Confiança)
-    unconstrained_opt_float = calculate_optimal_price(float(item.cost_price), float(eta))
-    unconstrained_opt = Decimal(str(round(unconstrained_opt_float, 2))).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
+    # 3. Otimização Irrestrita em Decimal estrito (Elasticidade de Alta Confiança)
+    unconstrained_opt = calculate_optimal_price_decimal(item.cost_price, eta)
 
     # 4. Clipping Seguro nos Limites Definidos pelo Negócio
     final_price, clipped_by = _clip_price(unconstrained_opt, item.min_price, item.max_price)

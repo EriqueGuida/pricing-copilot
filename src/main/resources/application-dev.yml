@@ -6,6 +6,11 @@ spring:
   jpa:
     show-sql: true
 
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:CopilotoPricingInteligenteChaveSecretaDevLocalHMACSHA256}
+
 management:
   endpoint:
     health:

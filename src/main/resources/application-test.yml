@@ -12,3 +12,8 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+
+app:
+  security:
+    jwt:
+      secret: CopilotoPricingInteligenteChaveSecretaTestSuiteHMACSHA256

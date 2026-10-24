@@ -12,7 +12,9 @@ import com.guidaerique.pricing_copilot.catalog.domain.Category;
 import com.guidaerique.pricing_copilot.catalog.domain.Product;
 import com.guidaerique.pricing_copilot.catalog.repository.ProductRepository;
 import com.guidaerique.pricing_copilot.pricing.client.dto.SuggestionResultResponse;
+import com.guidaerique.pricing_copilot.pricing.domain.InvalidPriceSuggestionException;
 import com.guidaerique.pricing_copilot.pricing.domain.PriceBounds;
+import com.guidaerique.pricing_copilot.pricing.domain.PriceBoundsCalculator;
 import com.guidaerique.pricing_copilot.pricing.domain.PriceGuard;
 import com.guidaerique.pricing_copilot.pricing.domain.PricingRun;
 import com.guidaerique.pricing_copilot.pricing.domain.event.PriceChangedEvent;
@@ -24,7 +26,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 public class PricingItemProcessor {
@@ -37,6 +38,7 @@ public class PricingItemProcessor {
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
     private final PriceGuard priceGuard = new PriceGuard();
+    private final PriceBoundsCalculator boundsCalculator = new PriceBoundsCalculator();
 
     public PricingItemProcessor(ProductRepository productRepository,
                                 PriceHistoryRepository priceHistoryRepository,
@@ -62,77 +64,76 @@ public class PricingItemProcessor {
                                             SuggestionResultResponse suggestion,
                                             PricingRun pricingRun,
                                             String modelVersion) {
+        BigDecimal suggestedPrice = suggestion.suggestedPrice();
+
         try {
-            BigDecimal suggestedPrice = suggestion.suggestedPrice();
-            
             // RF-03 / RNF-02: Validação rigorosa dos limites via PriceGuard
             priceGuard.validate(suggestedPrice, bounds);
-
-            // Alerta de baixa confiança econométrica da IA
-            if ("LOW".equalsIgnoreCase(suggestion.explanation().confidence())) {
-                createAlert(product, AlertType.LOW_CONFIDENCE,
-                        "IA sugeriu preco com baixa confianca para o SKU " + product.getSku());
-            }
-
-            BigDecimal currentPrice = product.getCurrentPrice();
-            if (currentPrice.compareTo(suggestedPrice) == 0) {
-                log.info("SKU {}: Preco sugerido identico ao vigente (R$ {}). Ignorado.", product.getSku(), currentPrice);
-                return ProcessOutcome.SKIPPED;
-            }
-
-            // Atualização do produto (incremento de @Version automático pelo JPA)
-            product.setCurrentPrice(suggestedPrice);
-            Product savedProduct = productRepository.save(product);
-
-            // Serialização do JSON de auditoria
-            String explanationJson = null;
-            try {
-                explanationJson = objectMapper.writeValueAsString(suggestion.explanation());
-            } catch (JsonProcessingException e) {
-                log.warn("Falha na serializacao da explicacao para SKU {}: {}", product.getSku(), e.getMessage());
-            }
-
-            // Gravação imutável do histórico
-            PriceHistory history = new PriceHistory(
-                    savedProduct,
-                    currentPrice,
-                    suggestedPrice,
-                    PriceOrigin.AI,
-                    null,
-                    "Atualizacao autonoma via IA (" + suggestion.strategy() + ")"
-            );
-            history.setPricingRunId(pricingRun.getId());
-            history.setModelVersion(modelVersion);
-            history.setExplanation(explanationJson);
-
-            priceHistoryRepository.save(history);
-
-            // Cálculo dos pisos/tetos nominais de margem para o evento
-            Category category = product.getCategory();
-            BigDecimal cost = product.getCostPrice();
-            BigDecimal pisoMargem = cost.divide(BigDecimal.ONE.subtract(category.getMinMargin()), 4, RoundingMode.CEILING).setScale(2, RoundingMode.CEILING);
-            BigDecimal tetoMargem = cost.divide(BigDecimal.ONE.subtract(category.getMaxMargin()), 4, RoundingMode.FLOOR).setScale(2, RoundingMode.FLOOR);
-
-            // Disparo desacoplado de evento de domínio
-            eventPublisher.publishEvent(new PriceChangedEvent(
-                    savedProduct,
-                    currentPrice,
-                    suggestedPrice,
-                    cost,
-                    category.getMinMargin(),
-                    category.getMaxMargin(),
-                    pisoMargem,
-                    tetoMargem,
-                    bounds,
-                    false
-            ));
-
-            return ProcessOutcome.UPDATED;
-
-        } catch (Exception ex) {
+        } catch (InvalidPriceSuggestionException ex) {
             log.error("Violacao de regra ao processar SKU {}: {}", product.getSku(), ex.getMessage());
             return ProcessOutcome.ERROR;
         }
+
+        // Alerta de baixa confiança econométrica da IA
+        if (suggestion.explanation() != null && "LOW".equalsIgnoreCase(suggestion.explanation().confidence())) {
+            createAlert(product, AlertType.LOW_CONFIDENCE,
+                    "IA sugeriu preco com baixa confianca para o SKU " + product.getSku());
+        }
+
+        BigDecimal currentPrice = product.getCurrentPrice();
+        if (currentPrice.compareTo(suggestedPrice) == 0) {
+            log.info("SKU {}: Preco sugerido identico ao vigente (R$ {}). Ignorado.", product.getSku(), currentPrice);
+            return ProcessOutcome.SKIPPED;
+        }
+
+        // Atualização do produto (incremento de @Version automático pelo JPA)
+        product.setCurrentPrice(suggestedPrice);
+        Product savedProduct = productRepository.saveAndFlush(product);
+
+        // Serialização do JSON de auditoria
+        String explanationJson = null;
+        try {
+            explanationJson = objectMapper.writeValueAsString(suggestion.explanation());
+        } catch (JsonProcessingException e) {
+            log.warn("Falha na serializacao da explicacao para SKU {}: {}", product.getSku(), e.getMessage());
+        }
+
+        // Gravação imutável do histórico
+        PriceHistory history = new PriceHistory(
+                savedProduct,
+                currentPrice,
+                suggestedPrice,
+                PriceOrigin.AI,
+                null,
+                "Atualizacao autonoma via IA (" + suggestion.strategy() + ")"
+        );
+        history.setPricingRunId(pricingRun.getId());
+        history.setModelVersion(modelVersion);
+        history.setExplanation(explanationJson);
+
+        priceHistoryRepository.save(history);
+
+        // Cálculo unificado dos pisos/tetos nominais de margem via PriceBoundsCalculator
+        Category category = product.getCategory();
+        BigDecimal cost = product.getCostPrice();
+        BigDecimal pisoMargem = boundsCalculator.calculateMarginFloor(cost, category.getMinMargin());
+        BigDecimal tetoMargem = boundsCalculator.calculateMarginCeiling(cost, category.getMaxMargin());
+
+        // Disparo desacoplado de evento de domínio
+        eventPublisher.publishEvent(new PriceChangedEvent(
+                savedProduct,
+                currentPrice,
+                suggestedPrice,
+                cost,
+                category.getMinMargin(),
+                category.getMaxMargin(),
+                pisoMargem,
+                tetoMargem,
+                bounds,
+                false
+        ));
+
+        return ProcessOutcome.UPDATED;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

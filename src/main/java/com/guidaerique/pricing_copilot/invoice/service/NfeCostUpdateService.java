@@ -83,7 +83,8 @@ public class NfeCostUpdateService {
                     throw new IllegalStateException("Piso de margem da categoria inválido: " + minMargin);
                 }
 
-                BigDecimal calculatedFloorPrice = newCost.divide(divisor, 2, RoundingMode.HALF_UP);
+                // CORREÇÃO ADR-001: Uso estrito de CEILING no piso para proteger a margem mínima
+                BigDecimal calculatedFloorPrice = newCost.divide(divisor, 2, RoundingMode.CEILING);
                 BigDecimal oldPrice = product.getCurrentPrice();
 
                 product.setCurrentPrice(calculatedFloorPrice);

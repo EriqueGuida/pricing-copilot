@@ -24,14 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Service
 public class PriceOverrideService {
 
-    private static final int DIVISION_SCALE = 12;
-    private static final int MONEY_SCALE = 2;
     private static final int DEFAULT_LOCK_HOURS = 24;
 
     private final ProductRepository productRepository;
@@ -66,11 +63,9 @@ public class PriceOverrideService {
         Role userRole = resolveUserRole(currentUser);
         AppUser author = resolveAuthor(currentUser);
 
-        // 2. Cálculo dos limites de margem nominais estritos
-        BigDecimal pisoMargem = cost.divide(BigDecimal.ONE.subtract(category.getMinMargin()), DIVISION_SCALE, RoundingMode.CEILING)
-                .setScale(MONEY_SCALE, RoundingMode.CEILING);
-        BigDecimal tetoMargem = cost.divide(BigDecimal.ONE.subtract(category.getMaxMargin()), DIVISION_SCALE, RoundingMode.FLOOR)
-                .setScale(MONEY_SCALE, RoundingMode.FLOOR);
+        // 2. Cálculo centralizado dos limites de margem nominais estritos
+        BigDecimal pisoMargem = boundsCalculator.calculateMarginFloor(cost, category.getMinMargin());
+        BigDecimal tetoMargem = boundsCalculator.calculateMarginCeiling(cost, category.getMaxMargin());
 
         // 3. Validação de Governança e RBAC
         if (userRole == Role.OPERATOR) {
