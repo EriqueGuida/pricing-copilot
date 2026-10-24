@@ -79,37 +79,37 @@ Para manter total transparência com recrutadores e avaliadores técnicos sobre 
 As capturas abaixo registram o comportamento real do ecossistema distribuído em execução integrada via Docker:
 
 ### 1. Visão Geral da API Core em Spring Boot (Porta 8080)
-![Visão Geral do Swagger Spring Boot](docs\assets\00-spring-core-swagger-overview.png.png)
+![Visão Geral do Swagger Spring Boot](docs/assets/00-spring-core-swagger-overview.png.png)
 > **Evidência OpenAPI 3.0 / Swagger UI:** Demonstra a orquestração modular dos 9 domínios transacionais e analíticos expostos pelo core Java na porta `8080`: `Pricing Runs`, `Categorias`, `Notas Fiscais (NF-e)`, `Concorrentes`, `Alertas`, `Relatórios e Auditoria`, `Autenticação`, `Produtos` e `Indicadores (KPIs)`.
 
 ---
 
 ### 2. Contrato OpenAPI 3.1 do Microsserviço de IA em FastAPI (Porta 8000)
-![Swagger UI do Microsserviço de IA FastAPI](docs\assets\01-fastapi-ai-service-swagger.png.png)
+![Swagger UI do Microsserviço de IA FastAPI](docs/assets/01-fastapi-ai-service-swagger.png.png)
 > **Evidência do Serviço de Inferência Python:** Interface OpenAPI 3.1 do microsserviço econométrico rodando via Uvicorn na porta `8000`. Exibe os endpoints de observabilidade (`/health`), metadados da regressão (`/v1/model/info`) e cálculo de sugestões (`/v1/suggestions`), além dos esquemas validados rigorosamente via Pydantic v2 com tipos monetários em `Decimal`.
 
 ---
 
 ### 3. Interface Interativa de Gestão de Catálogo
-![Swagger UI POST /api/products](docs\assets\02-spring-swagger-post-product.png.png)
+![Swagger UI POST /api/products](docs/assets/02-spring-swagger-post-product.png.png)
 > **Evidência de Documentação Interativa:** Endpoint `POST /api/products` com especificação completa de parâmetros e payload de entrada (`sku`, `ean`, `name`, `categoryId`, `costPrice`, `currentPrice`). A interface sinaliza visualmente a exigência de token Bearer JWT via Spring Security 6.
 
 ---
 
 ### 4. Governança e RBAC: Bloqueio Defensivo (HTTP 403 Forbidden)
-![Spring Security HTTP 403 Forbidden](docs\assets\03-security-rbac-403-forbidden.png.png)
+![Spring Security HTTP 403 Forbidden](docs/assets/03-security-rbac-403-forbidden.png.png)
 > **Evidência de Segurança Ativa:** Tentativa de cadastro de produto (`Placa de Vídeo RTX 4070 Ti 12GB`) sem cabeçalho de autenticação. O Spring Security 6 intercepta a requisição antes do dispatcher, bloqueando o acesso e aplicando headers de proteção (`x-content-type-options: nosniff`, `x-frame-options: DENY`, `x-xss-protection: 0`).
 
 ---
 
 ### 5. Tratamento de Erros Padronizado via RFC 7807 (HTTP 422 Problem Detail)
-![RFC 7807 Problem Detail HTTP 422](docs\assets\04-rfc7807-problem-detail-422.png.png)
+![RFC 7807 Problem Detail HTTP 422](docs/assets/04-rfc7807-problem-detail-422.png.png)
 > **Evidência de Validação de Regra de Negócio:** Violação de unicidade de catálogo tratada via padrão **RFC 7807 (`application/problem+json`)**. Ao tentar registrar um produto com o EAN já existente (`7891234567890`), a API retorna status `422 Unprocessable Entity` com payload semântico padronizado contendo `type`, `title`, `detail`, `instance` e `timestamp` em nanossegundos UTC.
 
 ---
 
 ### 6. Transação Concluída com Sucesso e Concorrência Otimista (HTTP 201 Created)
-![Produto Criado com Sucesso HTTP 201](docs\assets\05-product-created-201-jwt.png.png)
+![Produto Criado com Sucesso HTTP 201](docs/assets/05-product-created-201-jwt.png.png)
 > **Evidência de Persistência e Controle de Concorrência:** Requisição autenticada com sucesso (`Authorization: Bearer <JWT>`) cadastrando o item `GPU-RTX-4080-SUPER` (EAN `7891234567899`). O backend responde com `HTTP 201 Created`, resolvendo a categoria dinamicamente e registrando `"version": 0`, comprovando o funcionamento do controle de concorrência otimista via `@Version` do JPA/Hibernate.
 
 ---
