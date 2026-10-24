@@ -1,7 +1,7 @@
 # 🏷️ Copiloto de Precificação Inteligente
 
-![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow?style=for-the-badge)
-![Milestone](https://img.shields.io/badge/Milestone-10%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Concluido-green?style=for-the-badge)
+![Milestone](https://img.shields.io/badge/Milestone-11%2F11%20Conclu%C3%ADdas-blue?style=for-the-badge)
 
 ---
 
@@ -39,7 +39,7 @@ O desenvolvimento é orientado a 11 marcos executáveis. As camadas fundamentais
   *Orquestrador de ciclos de precificação (`PricingRunService`), Resilience4j (timeout de 2s, retry e circuit breaker) e processamento transacional isolado por produto.*
 - [x] **Milestone 10: Relatórios de Auditoria & Indicadores (KPIs)**  
   *Exportação de histórico em CSV via streaming de baixo consumo de memória, endpoints de métricas agregadas via SQL nativo e parser de NF-e.*
-- [ ] **Milestone 11: Orquestração Completa, CI/CD & DoD Final**  
+- [x] **Milestone 11: Orquestração Completa, CI/CD & DoD Final**  
   *Docker Compose unificado de produção/demonstração, pipeline do GitHub Actions, formalização dos ADRs e roteiro de apresentação técnica.*
 
 ---

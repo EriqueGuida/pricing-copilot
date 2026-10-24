@@ -1,27 +1,76 @@
-services:  
-  mysql:    
-    image: mysql:8.0    
-    container_name: copiloto-mysql    
-    restart: unless-stopped    
-    environment:      
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}      
-      MYSQL_DATABASE: pricing_copilot
-      MYSQL_USER: ${DB_USER:-copiloto}      
-      MYSQL_PASSWORD: ${DB_PASSWORD:-copiloto}      
-      TZ: UTC    
-    command:      
-      - --character-set-server=utf8mb4      
-      - --collation-server=utf8mb4_0900_ai_ci      
-      - --log-bin-trust-function-creators=1    
-    ports:      
-      - "3307:3306"    
-    volumes:      
-      - mysql_data:/var/lib/mysql    
-    healthcheck:      
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]      
-      interval: 5s      
-      timeout: 3s      
-      retries: 20
+version: '3.8'
 
-volumes:  
+services:
+  copiloto-mysql:
+    image: mysql:8.0
+    container_name: copiloto-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: pricing_copilot
+      MYSQL_USER: ${DB_USER:-copiloto}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-copiloto}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --log-bin-trust-function-creators=1
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - copiloto-net
+
+  copiloto-ai:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: copiloto-ai
+    restart: unless-stopped
+    environment:
+      PRICING_AI_APP_NAME: "Copiloto Pricing AI Service"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - copiloto-net
+
+  copiloto-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: copiloto-backend
+    restart: unless-stopped
+    depends_on:
+      copiloto-mysql:
+        condition: service_healthy
+      copiloto-ai:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://copiloto-mysql:3306/pricing_copilot?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-copiloto}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-copiloto}
+      PRICING_AI_CLIENT_BASE_URL: http://copiloto-ai:8000
+    ports:
+      - "8080:8080"
+    networks:
+      - copiloto-net
+
+volumes:
   mysql_data:
+
+networks:
+  copiloto-net:
+    driver: bridge
