@@ -102,10 +102,13 @@ class AuthSecurityIT {
     }
 
     @Test
-    @DisplayName("Deve bloquear requisições a rotas privadas sem header Authorization")
+    @DisplayName("Deve bloquear requisições a rotas privadas sem header Authorization com 401 ProblemDetail")
     void deveBloquearRotaPrivadaSemToken() throws Exception {
         mockMvc.perform(get("/api/categories"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status", is(401)))
+                .andExpect(jsonPath("$.title", notNullValue()))
+                .andExpect(jsonPath("$.detail", notNullValue()));
     }
 
     @Test
@@ -126,5 +129,30 @@ class AuthSecurityIT {
         mockMvc.perform(get("/api/categories")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar token JWT válido se a conta do usuário for desativada após a emissão")
+    void deveRejeitarTokenDeUsuarioDesativado() throws Exception {
+        LoginRequest request = new LoginRequest(userEmail, rawPassword);
+
+        String responseBody = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = objectMapper.readTree(responseBody).get("accessToken").asText();
+
+        AppUser user = userRepository.findByEmail(userEmail).orElseThrow();
+        user.setActive(false);
+        userRepository.save(user);
+
+        mockMvc.perform(get("/api/categories")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status", is(401)));
     }
 }

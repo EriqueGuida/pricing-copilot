@@ -54,6 +54,7 @@ public class AppUser implements UserDetails {
     public String getEmail() { return email; }
     public Role getRole() { return role; }
     public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

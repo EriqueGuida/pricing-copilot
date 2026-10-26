@@ -17,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.math.BigDecimal;
 
 @Configuration
-@Profile("dev") // Roda apenas quando você liga o projeto localmente (não afeta os testes!)
+@Profile("dev") // Roda apenas no ambiente local de desenvolvimento (não afeta os testes)
 public class DemoDataInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataInitializer.class);
@@ -29,14 +29,14 @@ public class DemoDataInitializer {
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
-            if (!userRepository.existsByEmail("admin@copiloto.com")) {
-                userRepository.save(new AppUser(
-                        "admin@copiloto.com",
-                        passwordEncoder.encode("Admin@123"),
-                        Role.ADMIN
-                ));
-                log.info("Usuário de demonstração criado: admin@copiloto.com / Admin@123");
-            }
+            createDemoUserIfNotExists(userRepository, passwordEncoder,
+                    "admin@copiloto.com", "Admin@123", Role.ADMIN);
+
+            createDemoUserIfNotExists(userRepository, passwordEncoder,
+                    "operator@copiloto.com", "Operator@123", Role.OPERATOR);
+
+            createDemoUserIfNotExists(userRepository, passwordEncoder,
+                    "executive@copiloto.com", "Executive@123", Role.EXECUTIVE);
 
             if (categoryRepository.count() == 0) {
                 categoryRepository.save(new Category(
@@ -46,8 +46,25 @@ public class DemoDataInitializer {
                         new BigDecimal("0.5000"),
                         new BigDecimal("0.2000")
                 ));
-                log.info("Categoria de demonstração criada: Hardware & GPUs (ID 1)");
+                log.info("Categoria de demonstração criada: Hardware & GPUs (Vertical: COMPUTER_GAMING)");
             }
         };
+    }
+
+    private void createDemoUserIfNotExists(
+            AppUserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            String email,
+            String rawPassword,
+            Role role
+    ) {
+        if (!userRepository.existsByEmail(email)) {
+            userRepository.save(new AppUser(
+                    email,
+                    passwordEncoder.encode(rawPassword),
+                    role
+            ));
+            log.info("Usuário de demonstração criado: {} (Role: {})", email, role);
+        }
     }
 }

@@ -10,6 +10,7 @@ import com.guidaerique.pricing_copilot.audit.domain.PriceOrigin;
 import com.guidaerique.pricing_copilot.audit.repository.PriceHistoryRepository;
 import com.guidaerique.pricing_copilot.catalog.domain.Category;
 import com.guidaerique.pricing_copilot.catalog.domain.Product;
+import com.guidaerique.pricing_copilot.catalog.repository.CategoryRepository;
 import com.guidaerique.pricing_copilot.catalog.repository.ProductRepository;
 import com.guidaerique.pricing_copilot.pricing.client.dto.SuggestionResultResponse;
 import com.guidaerique.pricing_copilot.pricing.domain.InvalidPriceSuggestionException;
@@ -21,6 +22,7 @@ import com.guidaerique.pricing_copilot.pricing.domain.event.PriceChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ public class PricingItemProcessor {
     private final AlertRepository alertRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+    private CategoryRepository categoryRepository;
     private final PriceGuard priceGuard = new PriceGuard();
     private final PriceBoundsCalculator boundsCalculator = new PriceBoundsCalculator();
 
@@ -50,6 +53,11 @@ public class PricingItemProcessor {
         this.alertRepository = alertRepository;
         this.eventPublisher = eventPublisher;
         this.objectMapper = objectMapper;
+    }
+
+    @Autowired(required = false)
+    public void setCategoryRepository(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
     }
 
     public enum ProcessOutcome {
@@ -66,9 +74,24 @@ public class PricingItemProcessor {
                                             String modelVersion) {
         BigDecimal suggestedPrice = suggestion.suggestedPrice();
 
+        Category currentCategory = product.getCategory();
+        if (categoryRepository != null && currentCategory != null && currentCategory.getId() != null) {
+            currentCategory = categoryRepository.findById(currentCategory.getId()).orElse(currentCategory);
+        }
+
+        PriceBounds effectiveBounds = (currentCategory != null)
+                ? boundsCalculator.calculate(
+                        product.getCostPrice(),
+                        product.getCurrentPrice(),
+                        currentCategory.getMinMargin(),
+                        currentCategory.getMaxMargin(),
+                        currentCategory.getMaxVariation()
+                )
+                : bounds;
+
         try {
-            // RF-03 / RNF-02: Validação rigorosa dos limites via PriceGuard
-            priceGuard.validate(suggestedPrice, bounds);
+            // RF-03 / RNF-02: Revalidação rigorosa contra os limites vigentes via PriceGuard
+            priceGuard.validate(suggestedPrice, effectiveBounds);
         } catch (InvalidPriceSuggestionException ex) {
             log.error("Violacao de regra ao processar SKU {}: {}", product.getSku(), ex.getMessage());
             return ProcessOutcome.ERROR;
@@ -114,7 +137,7 @@ public class PricingItemProcessor {
         priceHistoryRepository.save(history);
 
         // Cálculo unificado dos pisos/tetos nominais de margem via PriceBoundsCalculator
-        Category category = product.getCategory();
+        Category category = currentCategory != null ? currentCategory : product.getCategory();
         BigDecimal cost = product.getCostPrice();
         BigDecimal pisoMargem = boundsCalculator.calculateMarginFloor(cost, category.getMinMargin());
         BigDecimal tetoMargem = boundsCalculator.calculateMarginCeiling(cost, category.getMaxMargin());
@@ -129,7 +152,7 @@ public class PricingItemProcessor {
                 category.getMaxMargin(),
                 pisoMargem,
                 tetoMargem,
-                bounds,
+                effectiveBounds,
                 false
         ));
 

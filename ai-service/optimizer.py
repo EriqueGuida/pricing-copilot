@@ -4,6 +4,7 @@ Motor analítico de cálculo de preço ótimo por elasticidade e fallback baseli
 
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Literal, Optional, Tuple, Union
+from config import settings
 from schemas import (
     Explanation,
     SuggestionItem,
@@ -16,34 +17,30 @@ DecisionOutput = SuggestionResult
 DecisionExplanation = Explanation
 
 
-def calculate_optimal_price(cost_price: Union[float, Decimal], elasticity: Union[float, Decimal]) -> float:
+def calculate_optimal_price_decimal(
+    cost_price: Union[Decimal, float, str],
+    elasticity: Union[float, Decimal, str]
+) -> Decimal:
     """
-    Calcula o preço ótimo maximizador de lucro:
+    Calcula o preço ótimo maximizador de lucro em aritmética Decimal estrita
+    para evitar perda de precisão IEEE 754:
     p* = cost * (eta / (1 + eta))
     Exige demanda elástica: eta < -1.
     """
-    eta_val = float(elasticity)
-    if eta_val >= -1.0:
-        raise ValueError(
-            f"Elasticidade inelástica ou não convergente (eta = {eta_val:.4f} >= -1). "
-            "Impossível calcular preço ótimo sem limites de saturação."
-        )
-    markup_factor = eta_val / (1.0 + eta_val)
-    return float(cost_price) * markup_factor
+    cost_dec = cost_price if isinstance(cost_price, Decimal) else Decimal(str(cost_price))
+    eta_dec = elasticity if isinstance(elasticity, Decimal) else Decimal(str(elasticity))
 
-
-def calculate_optimal_price_decimal(cost_price: Decimal, elasticity: Union[float, Decimal]) -> Decimal:
-    """
-    Versão em aritmética Decimal estrita para evitar perda de precisão IEEE 754.
-    """
-    eta_dec = Decimal(str(elasticity))
     if eta_dec >= Decimal("-1.0"):
         raise ValueError(
             f"Elasticidade inelástica ou não convergente (eta = {eta_dec} >= -1). "
             "Impossível calcular preço ótimo sem limites de saturação."
         )
     markup_factor = eta_dec / (Decimal("1") + eta_dec)
-    return (cost_price * markup_factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return (cost_dec * markup_factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+# Mantém o alias apontando para a implementação Decimal estrita
+calculate_optimal_price = calculate_optimal_price_decimal
 
 
 def _clip_price(
@@ -73,6 +70,9 @@ def evaluate_pricing_strategy(
     r2 = params.get("r2", 0.0)
     obs_count = params.get("observations", 0)
 
+    r2_min = getattr(settings, "r2_threshold", 0.30)
+    obs_min = getattr(settings, "min_observations_threshold", 30)
+
     # 1. Mediana dos concorrentes (se fornecida)
     comp_median: Optional[Decimal] = None
     if item.competitor_prices:
@@ -89,8 +89,8 @@ def evaluate_pricing_strategy(
     is_low_confidence = (
         eta is None
         or eta >= -1.0
-        or r2 < 0.30
-        or obs_count < 30
+        or r2 < r2_min
+        or obs_count < obs_min
     )
 
     if is_low_confidence:

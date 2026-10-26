@@ -5,7 +5,7 @@ Testes unitários e invariantes de negócio para o motor de precificação e oti
 from decimal import Decimal
 import pytest
 from optimizer import (
-    calculate_optimal_price,
+    calculate_optimal_price_decimal,
     evaluate_pricing_strategy,
     OptimizationInput,
 )
@@ -13,35 +13,35 @@ from optimizer import (
 
 def test_optimal_price_analytical_match():
     """
-    Testa a fórmula analítica p* = c * (eta / (1 + eta)).
+    Testa a fórmula analítica p* = c * (eta / (1 + eta)) em Decimal.
     Exemplo à mão:
-    Custo c = 100.0
+    Custo c = 100.00
     eta = -2.0
     Markup factor = -2.0 / (1 - 2.0) = -2.0 / -1.0 = 2.0
-    p* = 100.0 * 2.0 = 200.0
+    p* = 100.00 * 2.0 = 200.00
     """
-    cost = 100.0
-    elasticity = -2.0
-    p_star = calculate_optimal_price(cost, elasticity)
-    assert p_star == pytest.approx(200.0, rel=1e-5)
+    cost = Decimal("100.00")
+    elasticity = Decimal("-2.0")
+    p_star = calculate_optimal_price_decimal(cost, elasticity)
+    assert p_star == Decimal("200.00")
 
     # Exemplo 2:
-    # c = 50.0, eta = -1.5
+    # c = 50.00, eta = -1.5
     # Markup factor = -1.5 / -0.5 = 3.0
-    # p* = 50.0 * 3.0 = 150.0
-    assert calculate_optimal_price(50.0, -1.5) == pytest.approx(150.0, rel=1e-5)
+    # p* = 50.00 * 3.0 = 150.00
+    assert calculate_optimal_price_decimal(Decimal("50.00"), Decimal("-1.5")) == Decimal("150.00")
 
 
 def test_defensive_inelastic_elasticity_raises_value_error():
     """Se a demanda for inelástica (eta >= -1), deve lançar exceção ou não convergir."""
     with pytest.raises(ValueError, match="inelástica ou não convergente"):
-        calculate_optimal_price(100.0, -1.0)
+        calculate_optimal_price_decimal(Decimal("100.00"), Decimal("-1.0"))
 
     with pytest.raises(ValueError, match="inelástica ou não convergente"):
-        calculate_optimal_price(100.0, -0.5)
+        calculate_optimal_price_decimal(Decimal("100.00"), Decimal("-0.5"))
 
     with pytest.raises(ValueError, match="inelástica ou não convergente"):
-        calculate_optimal_price(100.0, 0.5)
+        calculate_optimal_price_decimal(Decimal("100.00"), Decimal("0.5"))
 
 
 def test_evaluate_pricing_strategy_clipping_bounds():

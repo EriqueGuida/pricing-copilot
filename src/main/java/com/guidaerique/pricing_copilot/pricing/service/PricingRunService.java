@@ -104,10 +104,14 @@ public class PricingRunService {
                     boundsBySku.put(p.getSku(), bounds);
 
                     List<String> compPrices = compPricesByProductId.getOrDefault(p.getId(), List.of());
+                    String verticalName = p.getCategory().getVertical() != null
+                            ? p.getCategory().getVertical().name()
+                            : null;
 
                     requestItems.add(new SuggestionItemRequest(
                             p.getSku(),
                             p.getCategory().getId(),
+                            verticalName,
                             p.getCostPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
                             p.getCurrentPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
                             bounds.minPrice().setScale(2, RoundingMode.HALF_UP).toPlainString(),
